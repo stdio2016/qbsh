@@ -21,9 +21,18 @@ type Database struct {
 }
 
 type SongScore struct {
-	SongId string
-	Name   string
-	Score  PitchType
+	SongId string    `json:"file"`
+	Name   string    `json:"name"`
+	Score  PitchType `json:"score"`
+}
+
+type Result struct {
+	// progress must be "100" to indicate success
+	// or "error" to indicate error
+	Progress string      `json:"progress"`
+	Pitch    []PitchType `json:"pitch"`
+	Songs    []SongScore `json:"songs"`
+	Reason   string      `json:"reason"`
 }
 
 func InitDatabase() *Database {
@@ -43,7 +52,7 @@ func (db *Database) AddSong(song *Song, id string) {
 	db.Lock.Unlock()
 }
 
-func (db *Database) Search(query []PitchType) {
+func (db *Database) Search(query []PitchType) Result {
 	result := make([]SongScore, 0)
 	q_mi := Median(query)
 
@@ -65,6 +74,11 @@ func (db *Database) Search(query []PitchType) {
 		return result[i].Score < result[j].Score
 	})
 
+	return Result{
+		Progress: "100",
+		Pitch:    query,
+		Songs:    result[:IntMin(10, len(result))],
+	}
 	/*for rank, sco := range result[:IntMin(10, len(result))] {
 		fmt.Printf("%d. %s %f\n", rank+1, sco.Name, sco.Score)
 	}*/
