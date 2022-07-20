@@ -1,7 +1,9 @@
 package qbsh
 
 import (
+	"os"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -39,6 +41,22 @@ func InitDatabase() *Database {
 	return &Database{
 		Songs: make(map[string]*Song),
 	}
+}
+
+func (db *Database) AddFromFile(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	str := string(data)
+	lines := strings.Split(str, "\n")
+	for i := 0; i < len(lines)/3; i++ {
+		name := lines[i*3]
+		songId := lines[i*3+1]
+		pitch := ParsePitch(lines[i*3+2])
+		db.AddSong(MakeSong(pitch, name), songId)
+	}
+	return nil
 }
 
 func (db *Database) AddSong(song *Song, id string) {
