@@ -36,6 +36,7 @@ func GetWavPitch(path string) ([]PitchType, error) {
 		j++
 		if j == bufSize {
 			frequency, probability := findMainFrequency(buf)
+			frequency *= float64(s.SampleRate()) / 44100
 			pitch := PitchType(-1)
 			if probability > 0.5 {
 				pitch = ConvertHzToPitch(frequency)
