@@ -103,7 +103,10 @@ func (db *Database) Search(query []PitchType) Result {
 }
 
 func MakeSong(pitch []PitchType, name string) *Song {
-	med := Median(pitch)
+	var med PitchType
+	if len(pitch) > 0 {
+		med = Median(pitch)
+	}
 	lo := med - 2
 	hi := med + 2
 	for i := 0; i < len(pitch)-128; i += 16 {
