@@ -106,7 +106,7 @@ func GetWavPitch2(path string) ([]PitchType, error) {
 	better := pyin.PyinHMMViterbi(frames, backpath, prob)
 	for i := range better {
 		out[i] = ConvertHzToPitch(better[i].Frequency)
-		if better[i].Probability < 0 {
+		if better[i].Probability < 0.3 {
 			out[i] = -1
 		}
 	}

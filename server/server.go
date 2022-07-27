@@ -68,7 +68,7 @@ func main() {
 			return
 		}
 		time_1 := time.Now()
-		pitch, err := qbsh.GetWavPitch(filename)
+		pitch, err := qbsh.GetWavPitch2(filename)
 		if err != nil {
 			result := qbsh.Result{
 				Progress: "error",
