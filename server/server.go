@@ -98,10 +98,14 @@ func main() {
 		w.Write(b)
 		log.Default().Printf("search local file %s\n", filename)
 	}
+	handlePing := func(w http.ResponseWriter, _ *http.Request) {
+		fmt.Fprint(w, "{\"status\":\"ok\"}")
+	}
 
 	http.HandleFunc("/add", handleAdd)
 	http.HandleFunc("/search", handleSearch)
 	http.HandleFunc("/searchLocalWav", handleSearchLocalWav)
+	http.HandleFunc("/ping", handlePing)
 
 	log.Default().Printf("Started server\n")
 	http.ListenAndServe(":1606", nil)
