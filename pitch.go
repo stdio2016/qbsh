@@ -289,8 +289,16 @@ func (pyin *Pyin) PyinHMMForward(frame []PyinCandidate, prob []float64) ([]float
 	for i := range newprob {
 		sum += newprob[i]
 	}
-	for i := range newprob {
-		newprob[i] /= sum
+	if sum == 0.0 {
+		// probability sum to 0?
+		for i := range newprob {
+			newprob[i] = 1
+			path[i] = i
+		}
+	} else {
+		for i := range newprob {
+			newprob[i] /= sum
+		}
 	}
 	return newprob, path
 }
@@ -307,9 +315,24 @@ func (pyin *Pyin) PyinHMMViterbi(frame [][]PyinCandidate, path [][]int, finalPro
 		nearest := pyin.pyinNearestFrequencyBin(frame[i])
 		if nearest[state/2] > 0 {
 			out[i] = frame[i][nearest[state/2]-1]
+		} else if len(frame[i]) > 0 {
+			// rescue frequency
+			var minDiff float64
+			var which int
+			first := true
+			for j := range frame[i] {
+				freq := math.Log2(frame[i][j].Frequency/pyin.Fmin) * 12 / pyin.Resolution
+				freqDiff := math.Abs(freq - math.Round(freq))
+				if freqDiff < minDiff || first {
+					minDiff = freqDiff
+					which = j
+				}
+				first = false
+			}
+			out[i] = frame[i][which]
 		} else {
-			pitch := pyin.Fmin * math.Pow(2, float64(state/2)/12*pyin.Resolution)
-			out[i] = PyinCandidate{pitch, 1}
+			// no pitch detected but in voice state?
+			out[i].Frequency = -1
 		}
 		if state&1 == 1 { // unvoiced
 			out[i].Frequency = -1
