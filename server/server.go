@@ -29,6 +29,7 @@ func main() {
 		r.ParseForm()
 		songId := r.Form.Get("songId")
 		name := r.Form.Get("name")
+		artist := r.Form.Get("artist")
 		s_pitch := r.Form.Get("pitch")
 		if songId == "" {
 			w.WriteHeader(400)
@@ -37,6 +38,7 @@ func main() {
 		}
 		pitch := qbsh.ParsePitch(s_pitch)
 		song := qbsh.MakeSong(pitch, name)
+		song.Artist = artist
 		db.AddSong(song, songId)
 		fmt.Fprintf(w, "{\"message\":\"Added song\"}")
 		log.Default().Printf("Added song %s name %s\n", songId, name)

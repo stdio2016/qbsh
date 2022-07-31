@@ -12,6 +12,7 @@ type PitchType float32
 type Song struct {
 	Name   string
 	Pitch  []PitchType
+	Artist string
 	Median PitchType
 	Low    PitchType
 	High   PitchType
@@ -26,6 +27,7 @@ type SongScore struct {
 	SongId string    `json:"file"`
 	Name   string    `json:"name"`
 	Score  PitchType `json:"score"`
+	Artist string    `json:"singer"`
 }
 
 type Result struct {
@@ -50,11 +52,14 @@ func (db *Database) AddFromFile(path string) error {
 	}
 	str := string(data)
 	lines := strings.Split(str, "\n")
-	for i := 0; i < len(lines)/3; i++ {
-		name := lines[i*3]
-		songId := lines[i*3+1]
-		pitch := ParsePitch(lines[i*3+2])
-		db.AddSong(MakeSong(pitch, name), songId)
+	for i := 0; i < len(lines)/4; i++ {
+		songId := lines[i*4]
+		name := lines[i*4+1]
+		artist := lines[i*4+2]
+		pitch := ParsePitch(lines[i*4+3])
+		song := MakeSong(pitch, name)
+		song.Artist = artist
+		db.AddSong(song, songId)
 	}
 	return nil
 }
@@ -84,7 +89,7 @@ func (db *Database) Search(query []PitchType) Result {
 				best = sco
 			}
 		}
-		result = append(result, SongScore{songId, songName, best})
+		result = append(result, SongScore{songId, songName, best, song.Artist})
 	}
 	db.Lock.RUnlock()
 
