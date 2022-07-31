@@ -1,6 +1,7 @@
 package qbsh
 
 import (
+	"math"
 	"os"
 	"sort"
 	"strings"
@@ -16,6 +17,13 @@ type Song struct {
 	Median PitchType
 	Low    PitchType
 	High   PitchType
+	Ranges []SongPitchRange
+}
+
+type SongPitchRange struct {
+	From   int
+	To     int
+	Median PitchType
 }
 
 type Database struct {
@@ -83,8 +91,8 @@ func (db *Database) Search(query []PitchType) Result {
 	for songId, song := range db.Songs {
 		best := PitchType(99999.0)
 		songName := song.Name
-		for t := song.Low; t <= song.High; t++ {
-			sco := DTW(song.Pitch, query, q_mi-PitchType(t))
+		for _, ran := range song.Ranges {
+			sco := DTW(song.Pitch[ran.From:ran.To], query, q_mi-ran.Median)
 			if sco < best {
 				best = sco
 			}
@@ -115,12 +123,71 @@ func MakeSong(pitch []PitchType, name string) *Song {
 	lo := med - 2
 	hi := med + 2
 	for i := 0; i < len(pitch)-128; i += 16 {
-		med := Median(pitch[i : i+128])
+		med := Median(pitch[i : i+127])
 		if med < lo {
 			lo = med
 		}
 		if med > hi {
 			hi = med
+		}
+	}
+
+	var cum float64
+	cumsums := []float64{0}
+	for i := 0; i < len(pitch); i++ {
+		cum += float64(pitch[i])
+		cumsums = append(cumsums, cum)
+	}
+	upper := make([]int, len(pitch))
+	lower := make([]int, len(pitch))
+	isInit := make([]bool, len(pitch))
+	for i := 0; i <= len(pitch)-80; i++ {
+		mymax := 0
+		mymin := 0
+		first := true
+		for j := IntMin(len(pitch)-i, 240); j > 0; j-- {
+			if j >= 80 {
+				subavg := int(math.Round((cumsums[i+j] - cumsums[i]) / float64(j)))
+				if first || subavg > mymax {
+					mymax = subavg
+				}
+				if first || subavg < mymin {
+					mymin = subavg
+				}
+			}
+			first = false
+			if !isInit[i+j-1] || mymax > upper[i+j-1] {
+				upper[i+j-1] = mymax
+			}
+			if !isInit[i+j-1] || mymin < lower[i+j-1] {
+				isInit[i+j-1] = true
+				lower[i+j-1] = mymin
+			}
+		}
+	}
+	var ranges []SongPitchRange
+	if len(pitch) >= 80 {
+		for trans := int(lo); trans <= int(hi); trans++ {
+			flag := false
+			from := 0
+			for i := range upper {
+				if lower[i]-1 <= trans && trans <= upper[i]+1 {
+					if !flag {
+						from = i
+					}
+					flag = true
+				} else {
+					if flag {
+						r := SongPitchRange{from, i, PitchType(trans)}
+						ranges = append(ranges, r)
+					}
+					flag = false
+				}
+			}
+			if flag {
+				r := SongPitchRange{from, len(upper), PitchType(trans)}
+				ranges = append(ranges, r)
+			}
 		}
 	}
 	return &Song{
@@ -129,6 +196,7 @@ func MakeSong(pitch []PitchType, name string) *Song {
 		Median: med,
 		Low:    lo,
 		High:   hi,
+		Ranges: ranges,
 	}
 }
 
