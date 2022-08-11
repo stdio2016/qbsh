@@ -1,9 +1,18 @@
 package qbsh
 
 import (
+	"math/rand"
 	"os"
 	"testing"
 )
+
+func RandPitch(n int) []PitchType {
+	out := make([]PitchType, n)
+	for i := 0; i < n; i++ {
+		out[i] = PitchType(rand.Intn(100))
+	}
+	return out
+}
 
 func TestAdd(t *testing.T) {
 	db := InitDatabase()
@@ -20,6 +29,23 @@ func TestSearch1(t *testing.T) {
 	db.AddSong(MakeSong([]PitchType{3, 2, 1}, "SongB"), "2")
 	query := []PitchType{1, 2, 3}
 	db.Search(query)
+}
+
+func TestSearch2(t *testing.T) {
+	var d DTW_tmp
+	for i := 1; i <= 10; i++ {
+		for j := 1; j <= 10; j++ {
+			rand.Seed(int64(i + j))
+			query := RandPitch(i)
+			song := MakeSong(RandPitch(j), "name")
+			shift := PitchType(2)
+			ans1 := DTW(song.Pitch, query, shift)
+			ans2 := d.DTW_simd(song, query, shift)
+			if ans1 != ans2 {
+				t.Errorf("query %d song %d two method differ", i, j)
+			}
+		}
+	}
 }
 
 func BenchmarkSearch(b *testing.B) {

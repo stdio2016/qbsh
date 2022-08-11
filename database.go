@@ -11,13 +11,14 @@ import (
 type PitchType float32
 
 type Song struct {
-	Name   string
-	Pitch  []PitchType
-	Artist string
-	Median PitchType
-	Low    PitchType
-	High   PitchType
-	Ranges []SongPitchRange
+	Name         string
+	Pitch        []PitchType
+	Artist       string
+	Median       PitchType
+	Low          PitchType
+	High         PitchType
+	Ranges       []SongPitchRange
+	PitchForSimd []PitchType
 }
 
 type SongPitchRange struct {
@@ -190,14 +191,25 @@ func MakeSong(pitch []PitchType, name string) *Song {
 			}
 		}
 	}
+	process_pitch := ProcessSongForSimd(pitch)
 	return &Song{
-		Name:   name,
-		Pitch:  pitch,
-		Median: med,
-		Low:    lo,
-		High:   hi,
-		Ranges: ranges,
+		Name:         name,
+		Pitch:        pitch,
+		Median:       med,
+		Low:          lo,
+		High:         hi,
+		Ranges:       ranges,
+		PitchForSimd: process_pitch,
 	}
+}
+
+func ProcessSongForSimd(pitch []PitchType) []PitchType {
+	// reverse song pitch, then zero pad by 8
+	out := make([]PitchType, len(pitch)+8)
+	for i := range pitch {
+		out[len(pitch)-1-i] = pitch[i]
+	}
+	return out
 }
 
 func DTW(song []PitchType, query []PitchType, shift PitchType) PitchType {
