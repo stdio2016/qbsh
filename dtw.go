@@ -30,7 +30,7 @@ func (d *DTW_tmp) DTW_simd(song *Song, query []PitchType, from, to int, shift Pi
 		}
 		d.Qlen = len(query)
 		nSong := len(song.Pitch)
-		ans := DTW_simd_impl(song.PitchForSimd[nSong-to:nSong-from], d.Query, nSong, d.Qlen, d.Dp1, d.Dp2, d.Dp3)
+		ans := DTW_simd_impl(song.PitchForSimd[nSong-to:nSong-from], d.Query, to-from, d.Qlen, d.Dp1, d.Dp2, d.Dp3)
 		return ans
 	}
 	// return good old implementation
