@@ -85,20 +85,23 @@ func (db *Database) AddSong(song *Song, id string) {
 }
 
 func (db *Database) Search(query []PitchType) Result {
-	result := make([]SongScore, 0)
 	q_mi := Median(query)
 
+	var d DTW_tmp
 	db.Lock.RLock()
+	result := make([]SongScore, len(db.Songs))
+	i := 0
 	for songId, song := range db.Songs {
 		best := PitchType(99999.0)
 		songName := song.Name
 		for _, ran := range song.Ranges {
-			sco := DTW(song.Pitch[ran.From:ran.To], query, q_mi-ran.Median)
+			sco := d.DTW_simd(song, query, ran.From, ran.To, q_mi-ran.Median)
 			if sco < best {
 				best = sco
 			}
 		}
-		result = append(result, SongScore{songId, songName, best, song.Artist})
+		result[i] = SongScore{songId, songName, best, song.Artist}
+		i++
 	}
 	db.Lock.RUnlock()
 
