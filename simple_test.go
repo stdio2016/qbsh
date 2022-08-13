@@ -1,6 +1,7 @@
 package qbsh
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"testing"
@@ -40,7 +41,8 @@ func TestSearch2(t *testing.T) {
 			song := MakeSong(RandPitch(j), "name")
 			shift := PitchType(2)
 			ans1 := DTW(song.Pitch, query, shift)
-			ans2 := d.DTW_simd(song, query, shift)
+			ans2 := d.DTW_simd(song, query, 0, j, shift)
+			fmt.Println(ans1, ans2)
 			if ans1 != ans2 {
 				t.Errorf("query %d song %d two method differ", i, j)
 			}
@@ -63,5 +65,33 @@ func BenchmarkSearch(b *testing.B) {
 	query := pitch[:128]
 	for i := 0; i < b.N; i++ {
 		db.Search(query)
+	}
+}
+
+func BenchmarkDTW(b *testing.B) {
+	bytes, err := os.ReadFile("testdata/littlebee.txt")
+	if err != nil {
+		b.Error("test data not found!")
+	}
+	dat := string(bytes)
+	pitch := ParsePitch(dat[:len(dat)-1])
+	query := pitch[:128]
+	for i := 0; i < b.N; i++ {
+		DTW(pitch, query, 0)
+	}
+}
+
+func BenchmarkDTWSimd(b *testing.B) {
+	bytes, err := os.ReadFile("testdata/littlebee.txt")
+	if err != nil {
+		b.Error("test data not found!")
+	}
+	dat := string(bytes)
+	pitch := ParsePitch(dat[:len(dat)-1])
+	song := MakeSong(pitch, "")
+	query := pitch[:128]
+	var d DTW_tmp
+	for i := 0; i < b.N; i++ {
+		d.DTW_simd(song, query, 0, len(pitch), 0)
 	}
 }

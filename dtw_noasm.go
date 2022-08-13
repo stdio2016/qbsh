@@ -1,16 +1,13 @@
+//go:build !arm64
+
 package qbsh
 
 const DTW_simd_has_impl = true
 const DTW_simd_width = 1
 
 // a dummy implementation but it is required
-func (d *DTW_tmp) DTW_simd_impl(song []PitchType, slen int) PitchType {
+func DTW_simd_impl(song, query []PitchType, slen, qlen int, dp1, dp2, dp3 []PitchType) PitchType {
 	const inf PitchType = 999999
-	dp1 := d.Dp1
-	dp2 := d.Dp2
-	dp3 := d.Dp3
-	qlen := d.Qlen
-	query := d.Query
 
 	ans := inf
 
