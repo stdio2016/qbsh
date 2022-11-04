@@ -112,7 +112,7 @@ func (db *Database) Search(query []PitchType) Result {
 	return Result{
 		Progress: "100",
 		Pitch:    query,
-		Songs:    result[:IntMin(10, len(result))],
+		Songs:    result[:IntMin(100, len(result))],
 	}
 	/*for rank, sco := range result[:IntMin(10, len(result))] {
 		fmt.Printf("%d. %s %f\n", rank+1, sco.Name, sco.Score)
