@@ -37,6 +37,8 @@ type SongScore struct {
 	Name   string    `json:"name"`
 	Score  PitchType `json:"score"`
 	Artist string    `json:"singer"`
+	From   int
+	To     int
 }
 
 type Result struct {
@@ -94,13 +96,18 @@ func (db *Database) Search(query []PitchType) Result {
 	for songId, song := range db.Songs {
 		best := PitchType(99999.0)
 		songName := song.Name
+		var bestRan SongPitchRange
 		for _, ran := range song.Ranges {
 			sco := d.DTW_simd(song, query, ran.From, ran.To, q_mi-ran.Median)
 			if sco < best {
 				best = sco
+				bestRan = ran
 			}
 		}
-		result[i] = SongScore{songId, songName, best, song.Artist}
+		_, from, to := DTW_find_where(song.Pitch[bestRan.From:bestRan.To], query, q_mi-bestRan.Median)
+		from += bestRan.From
+		to += bestRan.From
+		result[i] = SongScore{songId, songName, best, song.Artist, from, to}
 		i++
 	}
 	db.Lock.RUnlock()
@@ -247,4 +254,49 @@ func DTW(song []PitchType, query []PitchType, shift PitchType) PitchType {
 		}
 	}
 	return ans
+}
+
+func DTW_find_where(song []PitchType, query []PitchType, shift PitchType) (PitchType, int, int) {
+	n1 := len(song)
+	n2 := len(query)
+	dp1 := make([]PitchType, n2+1)
+	bt1 := make([]int, n2+1)
+	for i := 1; i <= n2; i++ {
+		dp1[i] = PitchType(999999.0)
+	}
+	dp2 := make([]PitchType, n2+1)
+	bt2 := make([]int, n2+1)
+	ans := PitchType(999999.0)
+	from, to := 0, 0
+	for i := 0; i < n1; i++ {
+		bt2[0] = i
+		for j := 0; j < n2; j++ {
+			diff := song[i] + shift - query[j]
+			if diff < 0 {
+				diff = -diff
+			}
+			v := dp1[j+1]
+			f := bt1[j+1]
+			v2 := dp1[j]
+			v3 := dp2[j]
+			if v2 < v {
+				v = v2
+				f = bt1[j]
+			}
+			if v3 < v {
+				v = v3
+				f = bt2[j]
+			}
+			dp2[j+1] = v + diff
+			bt2[j+1] = f
+		}
+		dp1, dp2 = dp2, dp1
+		bt1, bt2 = bt2, bt1
+		if dp1[n2] < ans {
+			ans = dp1[n2]
+			from = bt1[n2]
+			to = i
+		}
+	}
+	return ans, from, to
 }
