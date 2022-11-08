@@ -91,30 +91,44 @@ func (db *Database) Search(query []PitchType) Result {
 
 	var d DTW_tmp
 	db.Lock.RLock()
-	result := make([]SongScore, len(db.Songs))
+	songs := make([]*Song, len(db.Songs))
+	songIds := make([]string, len(db.Songs))
 	i := 0
 	for songId, song := range db.Songs {
+		songIds[i] = songId
+		songs[i] = song
+		i++
+	}
+	db.Lock.RUnlock()
+	result := make([]SongScore, len(songs))
+	bestRans := make([]SongPitchRange, len(songs))
+	for i, song := range songs {
 		best := PitchType(99999.0)
 		songName := song.Name
-		var bestRan SongPitchRange
 		for _, ran := range song.Ranges {
 			sco := d.DTW_simd(song, query, ran.From, ran.To, q_mi-ran.Median)
 			if sco < best {
 				best = sco
-				bestRan = ran
+				bestRans[i] = ran
 			}
 		}
-		_, from, to := DTW_find_where(song.Pitch[bestRan.From:bestRan.To], query, q_mi-bestRan.Median)
-		from += bestRan.From
-		to += bestRan.From
-		result[i] = SongScore{songId, songName, best, song.Artist, from, to}
+		result[i] = SongScore{songIds[i], songName, best, song.Artist, i, 0}
 		i++
 	}
-	db.Lock.RUnlock()
 
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Score < result[j].Score
 	})
+	for i := range result {
+		if i >= 100 {
+			break
+		}
+		song := songs[result[i].From]
+		bestRan := bestRans[result[i].From]
+		_, from, to := DTW_find_where(song.Pitch[bestRan.From:bestRan.To], query, q_mi-bestRan.Median)
+		result[i].From = from + bestRan.From
+		result[i].To = to + bestRan.From
+	}
 
 	return Result{
 		Progress: "100",
