@@ -1,6 +1,7 @@
 package qbsh
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"sort"
@@ -102,6 +103,8 @@ func (db *Database) Search(query []PitchType) Result {
 	db.Lock.RUnlock()
 	result := make([]SongScore, len(songs))
 	bestRans := make([]SongPitchRange, len(songs))
+	avgScore := PitchType(0.0)
+	validSongs := 0
 	for i, song := range songs {
 		best := PitchType(99999.0)
 		songName := song.Name
@@ -112,17 +115,30 @@ func (db *Database) Search(query []PitchType) Result {
 				bestRans[i] = ran
 			}
 		}
+		if best < PitchType(99999.0) {
+			avgScore += best
+			validSongs++
+		}
 		result[i] = SongScore{songIds[i], songName, best, song.Artist, i, 0}
 		i++
 	}
+	if validSongs > 1 {
+		avgScore /= PitchType(validSongs)
+	}
+	fmt.Println("Average score:", avgScore)
 
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Score < result[j].Score
 	})
+	outCount := 0
 	for i := range result {
 		if i >= 100 {
 			break
 		}
+		if result[i].Score > avgScore*PitchType(0.6) && result[i].Score > PitchType(70.0) {
+			break
+		}
+		outCount = i + 1
 		song := songs[result[i].From]
 		bestRan := bestRans[result[i].From]
 		_, from, to := DTW_find_where(song.Pitch[bestRan.From:bestRan.To], query, q_mi-bestRan.Median)
@@ -133,7 +149,7 @@ func (db *Database) Search(query []PitchType) Result {
 	return Result{
 		Progress: "100",
 		Pitch:    query,
-		Songs:    result[:IntMin(100, len(result))],
+		Songs:    result[:outCount],
 	}
 	/*for rank, sco := range result[:IntMin(10, len(result))] {
 		fmt.Printf("%d. %s %f\n", rank+1, sco.Name, sco.Score)
