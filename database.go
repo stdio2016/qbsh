@@ -135,7 +135,7 @@ func (db *Database) Search(query []PitchType) Result {
 		if i >= 100 {
 			break
 		}
-		if result[i].Score > avgScore*PitchType(0.6) && result[i].Score > PitchType(70.0) {
+		if result[i].Score > avgScore*PitchType(0.8) && result[i].Score > PitchType(70.0) {
 			break
 		}
 		outCount = i + 1
