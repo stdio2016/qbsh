@@ -103,7 +103,7 @@ func (db *Database) Search(query []PitchType) Result {
 	db.Lock.RUnlock()
 	result := make([]SongScore, len(songs))
 	bestRans := make([]SongPitchRange, len(songs))
-	avgScore := PitchType(0.0)
+	avgScore := 0.0
 	validSongs := 0
 	for i, song := range songs {
 		best := PitchType(99999.0)
@@ -116,16 +116,25 @@ func (db *Database) Search(query []PitchType) Result {
 			}
 		}
 		if best < PitchType(99999.0) {
-			avgScore += best
+			avgScore += float64(best)
 			validSongs++
 		}
 		result[i] = SongScore{songIds[i], songName, best, song.Artist, i, 0}
 		i++
 	}
+	stdScore := 0.0
 	if validSongs > 1 {
-		avgScore /= PitchType(validSongs)
+		avgScore /= float64(validSongs)
+		for i := range result {
+			if result[i].Score < PitchType(99999.0) {
+				diff := float64(result[i].Score) - avgScore
+				stdScore += diff * diff
+			}
+		}
+		stdScore = stdScore / float64(validSongs)
+		stdScore = math.Sqrt(stdScore)
 	}
-	fmt.Println("Average score:", avgScore)
+	fmt.Println("Average score:", avgScore, "stdev:", stdScore)
 
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Score < result[j].Score
@@ -135,7 +144,7 @@ func (db *Database) Search(query []PitchType) Result {
 		if i >= 100 {
 			break
 		}
-		if result[i].Score > avgScore*PitchType(0.8) && result[i].Score > PitchType(70.0) {
+		if float64(result[i].Score) > avgScore*0.8 && result[i].Score > PitchType(70.0) {
 			break
 		}
 		outCount = i + 1
