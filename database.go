@@ -333,7 +333,7 @@ func DTW_find_where(song []PitchType, query []PitchType, shift PitchType) (Pitch
 		bt1, bt2 = bt2, bt1
 		if dp1[n2] < ans {
 			ans = dp1[n2]
-			from = bt1[n2]
+			from = bt1[n2] + 1
 			to = i
 		}
 	}
