@@ -147,6 +147,9 @@ func (db *Database) Search(query []PitchType) Result {
 		if float64(result[i].Score) > avgScore*0.8 && result[i].Score > PitchType(70.0) {
 			break
 		}
+		if result[i].Score > result[0].Score*2 {
+			break
+		}
 		outCount = i + 1
 		song := songs[result[i].From]
 		bestRan := bestRans[result[i].From]
