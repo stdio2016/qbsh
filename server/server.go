@@ -26,6 +26,7 @@ func main() {
 	}
 
 	handleAdd := func(w http.ResponseWriter, r *http.Request) {
+		contentTypeJson(w)
 		r.ParseForm()
 		songId := r.Form.Get("songId")
 		name := r.Form.Get("name")
@@ -45,6 +46,7 @@ func main() {
 	}
 
 	handleSearch := func(w http.ResponseWriter, r *http.Request) {
+		contentTypeJson(w)
 		s_pitch := r.URL.Query().Get("pitch")
 		pitch := qbsh.ParsePitch(s_pitch)
 		if len(pitch) == 0 {
@@ -52,13 +54,18 @@ func main() {
 			fmt.Fprintf(w, "{\"error\":\"pitch must not be empty\"}")
 			return
 		}
+		time_2 := time.Now()
 		result := db.Search(pitch)
+		time_3 := time.Now()
+		result.Reason = fmt.Sprintf("search %dms",
+			time_3.Sub(time_2).Milliseconds())
 		b, _ := json.Marshal(result)
 		w.Write(b)
 		log.Default().Printf("Search song with pitch %v\n", pitch)
 	}
 
 	handleSearchLocalWav := func(w http.ResponseWriter, r *http.Request) {
+		contentTypeJson(w)
 		filename := r.URL.Query().Get("file")
 		if filename == "" {
 			result := qbsh.Result{
@@ -101,6 +108,7 @@ func main() {
 		log.Default().Printf("search local file %s\n", filename)
 	}
 	handlePing := func(w http.ResponseWriter, _ *http.Request) {
+		contentTypeJson(w)
 		fmt.Fprint(w, "{\"status\":\"ok\"}")
 	}
 
@@ -111,4 +119,8 @@ func main() {
 
 	log.Default().Printf("Started server\n")
 	http.ListenAndServe(":1606", nil)
+}
+
+func contentTypeJson(w http.ResponseWriter) {
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 }
